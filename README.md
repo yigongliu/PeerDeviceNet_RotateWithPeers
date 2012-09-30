@@ -18,11 +18,15 @@ The changes are as following.
 
 	1.3. this sample will use AIDL interface to connect to group service and communicate 
 		with peers; so add the following aidl files under package com.xconns.peerdevicenet:
+
 		* DeviceInfo.java - a simple class containing info about device: name, address, port
+
 		* DeviceInfo.aidl
  		* IRouterGroupService.aidl - async calls to join/leave group and send messages
+
  		* IRouterGroupHandler.aidl - callback interface to receive messages and group events 
  									such as peer join/leave.
+
  		* Router.java - optionally included for convenience, define commonly used message ids.
  		
 2. code changes
