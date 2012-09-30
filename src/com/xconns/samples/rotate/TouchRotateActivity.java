@@ -50,11 +50,12 @@ import com.xconns.peerdevicenet.Router;
 
 // a simple msg for rotation info. 
 class RotateMsg {
-	public final static int INIT_ORIENT_REQ = 1;
-	public final static int INIT_ORIENT_RSP = 2;
-	public final static int DELTA_ROTATION = 3;
+	// msg ids
+	public final static int INIT_ORIENT_REQ = 1; //inital query of peers' orientation
+	public final static int INIT_ORIENT_RSP = 2; //responses of peers' orientation
+	public final static int DELTA_ROTATION = 3;  //changes of orientation
 	
-	public int msgId; // msg id
+	public int msgId; 
 	public float rx, ry; //rotation along x & y axis
 	public RotateMsg() {
 	}
@@ -63,6 +64,30 @@ class RotateMsg {
 		rx = x;
 		ry = y;
 	}
+	
+	//the following using android Parcel to marshaling data, could use JSON etc.
+	public byte[] marshall() {
+		final Parcel parcel = Parcel.obtain();
+		byte[] data = null;
+		parcel.writeInt(msgId);
+		parcel.writeFloat(rx);
+		parcel.writeFloat(ry);
+		data = parcel.marshall();
+		parcel.recycle();
+		return data;
+	}
+
+	public void unmarshall(byte[] data, int len) {
+		final Parcel parcel = Parcel.obtain();
+		parcel.unmarshall(data, 0, len);
+		parcel.setDataPosition(0);
+		RotateMsg m = new RotateMsg();
+		msgId = parcel.readInt();
+		rx = parcel.readFloat();
+		ry = parcel.readFloat();
+		parcel.recycle();
+	}
+
 }
 
 
@@ -96,7 +121,8 @@ public class TouchRotateActivity extends Activity {
 		mainView.addView(mGLSurfaceView);
 		mGLSurfaceView.requestFocus();
 		mGLSurfaceView.setFocusableInTouchMode(true);
-
+		
+		//add a button to allow device connect to peers, if it is not connected
 		Button connBtn = (Button) findViewById(R.id.conn_btn);
 		connBtn.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
@@ -106,6 +132,7 @@ public class TouchRotateActivity extends Activity {
 			}
 		});
 
+		//bind to group service
 		Intent intent = new Intent("com.xconns.peerdevicenet.GroupService");
 		bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
 	}
@@ -128,14 +155,14 @@ public class TouchRotateActivity extends Activity {
 
 	@Override
 	public void onDestroy() {
-		// leave group
 		if (mGroupService != null) {
 			try {
+				// leave group
 				mGroupService.leaveGroup(groupId, mGroupHandler);
 			} catch (RemoteException e) {
 				// Log.e(TAG, "failed at leaveGroup: " + e.getMessage());
 			}
-			// Detach our existing connection.
+			// unbind service
 			unbindService(mConnection);
 		}
 		super.onDestroy();
@@ -163,7 +190,7 @@ public class TouchRotateActivity extends Activity {
 	public void sendRotateMsgToPeers(RotateMsg m) {
 		if (mGroupService != null) {
 			try {
-				mGroupService.send(groupId, null, marshallRotateMsg(m));
+				mGroupService.send(groupId, null, m.marshall());
 			} 
 			catch (RemoteException re) {
 				Log.d(TAG, "fail to send rotate info");
@@ -177,7 +204,7 @@ public class TouchRotateActivity extends Activity {
 		if (m.msgId == RotateMsg.INIT_ORIENT_REQ) {
 			RotateMsg m1 = mGLSurfaceView.getCurrentOrientation();
 			try {
-				mGroupService.send(groupId, dev, marshallRotateMsg(m1));
+				mGroupService.send(groupId, dev, m1.marshall());
 			}
 			catch(RemoteException re) {
 				Log.d(TAG, "fail to send initial orientation");
@@ -198,7 +225,7 @@ public class TouchRotateActivity extends Activity {
 			if (devices != null && devices.length > 0) {
 				//i have peers, sync my inital orientation with them
 				RotateMsg m = new RotateMsg(RotateMsg.INIT_ORIENT_REQ, 0, 0); //req init orientation
-				mGroupService.send(groupId, null, marshallRotateMsg(m));
+				mGroupService.send(groupId, null, m.marshall());
 			}
 		}
 
@@ -234,7 +261,8 @@ public class TouchRotateActivity extends Activity {
 				Object[] data = (Object[]) msg.obj;
 				DeviceInfo dev = (DeviceInfo) data[0];
 				byte[] rawbytes = (byte[]) data[1];
-				RotateMsg m = unmarshallRotateMsg(rawbytes, rawbytes.length);
+				RotateMsg m = new RotateMsg();
+				m.unmarshall(rawbytes, rawbytes.length);
 				procRotateMsgFromPeer(dev, m);
 				break;
 			default:
@@ -243,29 +271,6 @@ public class TouchRotateActivity extends Activity {
 		}
 	};
 
-	//the following using android Parcel to marshaling data, could use JSON etc.
-	public static byte[] marshallRotateMsg(RotateMsg m) {
-		final Parcel parcel = Parcel.obtain();
-		byte[] data = null;
-		parcel.writeInt(m.msgId);
-		parcel.writeFloat(m.rx);
-		parcel.writeFloat(m.ry);
-		data = parcel.marshall();
-		parcel.recycle();
-		return data;
-	}
-
-	public static RotateMsg unmarshallRotateMsg(byte[] data, int len) {
-		final Parcel parcel = Parcel.obtain();
-		parcel.unmarshall(data, 0, len);
-		parcel.setDataPosition(0);
-		RotateMsg m = new RotateMsg();
-		m.msgId = parcel.readInt();
-		m.rx = parcel.readFloat();
-		m.ry = parcel.readFloat();
-		parcel.recycle();
-		return m;
-	}
 }
 
 
@@ -314,6 +319,7 @@ class TouchSurfaceView extends GLSurfaceView {
 		return true;
 	}
 	
+	//the following two methods are added for handling msgs from peers
 	public void procRotateMsgFromPeer(RotateMsg m) {
 		if (m.msgId == RotateMsg.INIT_ORIENT_RSP) {
 			mRenderer.mAngleX = m.rx;
