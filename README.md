@@ -9,10 +9,13 @@ rotate the cube together, a simple demo of multi-player GUI applications.
 The changes are as following.
 
 1. configuration changes
+
 	1.1. install PeerDeviceNet (free edition)
+
 	1.2. in AndroidManifest.xml, add the following permission to enable group communication:
 		
 		<uses-permission android:name="com.xconns.peerdevicenet.permission.REMOTE_MESSAGING" />
+
 	1.3. this sample will use AIDL interface to connect to group service and communicate 
 		with peers; so add the following aidl files under package com.xconns.peerdevicenet:
 		* DeviceInfo.java - a simple class containing info about device: name, address, port
@@ -23,6 +26,7 @@ The changes are as following.
  		* Router.java - optionally included for convenience, define commonly used message ids.
  		
 2. code changes
+
 	2.1. connect to peer devices
 
 	We could call connection service api to set up peer connections. Normally we'll go 
