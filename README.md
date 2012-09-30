@@ -20,13 +20,10 @@ The changes are as following.
 		with peers; so add the following aidl files under package com.xconns.peerdevicenet:
 
 		* DeviceInfo.java - a simple class containing info about device: name, address, port
-
 		* DeviceInfo.aidl
  		* IRouterGroupService.aidl - async calls to join/leave group and send messages
-
  		* IRouterGroupHandler.aidl - callback interface to receive messages and group events 
  									such as peer join/leave.
-
  		* Router.java - optionally included for convenience, define commonly used message ids.
  		
 2. code changes
@@ -43,7 +40,7 @@ The changes are as following.
 		
 	2.2. bind to PeerDeviceNet group service
 
-	The group service is named as: "com.xconns.peerdevicenet.GroupService"
+	The group service is named as: "com.xconns.peerdevicenet.GroupService".
 		As normal, we bind/unbind to aidl group service during life-cycle callback methods:
 
 		onCreate():
@@ -62,6 +59,7 @@ The changes are as following.
 		onServiceConnected():
 		   	mGroupService.joinGroup(groupId, null, mGroupHandler);
 	leave group when app is destroyed
+
 		onDestroy():
 		   	mGroupService.leaveGroup(groupId, mGroupHandler);
 		   	
@@ -75,6 +73,10 @@ The changes are as following.
 			For this sample, we use android "Parcel" class. We could use JSON too.
 
 		class RotateMsg {
+			//message ids
+			public final static int INIT_ORIENT_REQ = 1; //inital query of peers' orientation
+			public final static int INIT_ORIENT_RSP = 2; //responses of peers' orientation
+			public final static int DELTA_ROTATION = 3;  //changes of orientation
 			byte[] marshall() {...}
 			void unmarshall(byte[] data, int len) {...}
 		}
@@ -98,21 +100,22 @@ The changes are as following.
 	To receive messages and other group communication events, define a handler
 			object implementing IRouterGroupHandler aidl interface:
 
-			mGroupHandler = new IRouterGroupHandler() {...}
-		
-			onSelfJoin(DeviceInfo[] devices):
+			mGroupHandler = new IRouterGroupHandler() {
+			    onSelfJoin(DeviceInfo[] devices):
 				here we find out if there are existing peers in the group, 
 				if so, send message requesting their orientation to sync initial orientation.
 				
-			onReceive(DeviceInfo src, byte[] b):
+			    onReceive(DeviceInfo src, byte[] b):
 				here we start processing messages from peers.
 				there are two kinds of messages: 
 					initial orientation response and orientation change events;
 					based on these events data, rotate the cube in GUI
-				
+			    ......
+			}	
+			
 	Please note that group handler's methods are executed in a thread pool
 				managed by android runtime, while GUI changes should be done in main GUI thread.
-				So create a android.os.Handler object with GUI thread and the above onReceive() method will forward event message to this handler object for processing.
+				So create a android.os.Handler object (mHandler) with GUI thread and the above onReceive() method will forward event message to this handler object for processing.
 				
 
 			
