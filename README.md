@@ -101,15 +101,15 @@ The changes are as following.
 			object implementing IRouterGroupHandler aidl interface:
 
 			mGroupHandler = new IRouterGroupHandler() {
-			    onSelfJoin(DeviceInfo[] devices):
-				here we find out if there are existing peers in the group, 
-				if so, send message requesting their orientation to sync initial orientation.
+				onSelfJoin(DeviceInfo[] devices):
+					here we find out if there are existing peers in the group, 
+					if so, send message requesting their orientation to sync initial orientation.
 				
-			    onReceive(DeviceInfo src, byte[] b):
-				here we start processing messages from peers.
-				there are two kinds of messages: 
-					initial orientation response and orientation change events;
-					based on these events data, rotate the cube in GUI
+				onReceive(DeviceInfo src, byte[] b):
+					here we start processing messages from peers.
+					there are two kinds of messages: 
+						initial orientation response and orientation change events;
+						based on these events data, rotate the cube in GUI
 			    ......
 			}	
 			
